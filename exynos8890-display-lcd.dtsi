@@ -92,7 +92,7 @@
 		dsc_en = <1>;		/* 0: Disable, 1: Enable */
 		dsc_cnt = <2>;		/* used DSC count */
 		dsc_slice_num = <4>;	/* count of dsc slice */
-	};
+};
 
 	s6e3ha5: s6e3ha5_wqhd {
 		mode = <2>;		/* 0: video mode, 1: DP command mode, 2: MIPI command mode */

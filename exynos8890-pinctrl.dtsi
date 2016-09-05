@@ -481,13 +481,6 @@
 			samsung,pin-drv = <1>;
 		};
 
-		fimc_is_mclk3_in: fimc_is_mclk3_in {
-			samsung,pins = "gpk0-3";
-			samsung,pin-function = <0>;
-			samsung,pin-pud = <0>;
-			samsung,pin-drv = <1>;
-		};
-
 		fimc_is_mclk0_out: fimc_is_mclk0_out {
 			samsung,pins = "gpk0-0";
 			samsung,pin-function = <1>;
@@ -504,13 +497,6 @@
 
 		fimc_is_mclk2_out: fimc_is_mclk2_out {
 			samsung,pins = "gpk0-2";
-			samsung,pin-function = <1>;
-			samsung,pin-pud = <1>;
-			samsung,pin-drv = <1>;
-		};
-
-		fimc_is_mclk3_out: fimc_is_mclk3_out {
-			samsung,pins = "gpk0-3";
 			samsung,pin-function = <1>;
 			samsung,pin-pud = <1>;
 			samsung,pin-drv = <1>;
@@ -537,13 +523,6 @@
 			samsung,pin-drv = <1>;
 		};
 
-		fimc_is_mclk3_fn: fimc_is_mclk3_fn {
-			samsung,pins = "gpk0-3";
-			samsung,pin-function = <2>;
-			samsung,pin-pud = <0>;
-			samsung,pin-drv = <1>;
-		};
-
 		fimc_is_i2c0: fimc_is_i2c0 {
 			samsung,pins = "gpc2-1", "gpc2-0";
 			samsung,pin-function = <2>;
@@ -563,7 +542,6 @@
 			samsung,pin-function = <1>;
 			samsung,pin-pud = <0>;
 			samsung,pin-drv = <0>;
-			samsung,pin-val = <0>;
 		};
 
 		fimc_is_i2c2: fimc_is_i2c2 {
@@ -758,12 +736,19 @@
 			samsung,pin-pud = <1>;
 			samsung,pin-drv = <0>;
 		};
-
 		pwm_tout1: pwm-tout1 {
 			   samsung,pins = "gpd0-5";
 			   samsung,pin-function = <2>;
 			   samsung,pin-pud = <1>;
 			   samsung,pin-drv = <0>;
+	   };
+
+
+		vibetonz_pwm: vibetonz_pwm {
+			samsung,pins = "gpd0-5";
+			samsung,pin-function = <2>;
+			samsung,pin-pud = <1>;
+			samsung,pin-drv = <0>;
 		};
 	};
 
@@ -1039,7 +1024,7 @@
 			samsung,pins = "gpe6-3", "gpe6-2";
 			samsung,pin-function = <2>;
 			samsung,pin-pud = <0>;
-			samsung,pin-drv = <2>;
+			samsung,pin-drv = <0>;
 		};
 
 		pcie0_clkreq: pcie0_clkreq {
