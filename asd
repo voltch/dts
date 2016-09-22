@@ -35,17 +35,16 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/apm-exynos.h>
-
-#include <linux/sysfs_helpers.h>
-
 #ifdef CONFIG_MUIC_SUPPORT_CCIC
 #include <linux/of_gpio.h>
 #endif
 
+#include <linux/sysfs_helpers.h>
+
 #include <asm/smp_plat.h>
 #include <asm/cputype.h>
 
-#if defined(CONFIG_SEC_PM) && defined(CONFIG_MUIC_NOTIFIER) && !defined(CONFIG_MUIC_SUPPORT_CCIC)
+#if defined(CONFIG_SEC_PM) && defined(CONFIG_MUIC_NOTIFIER)
 #include <linux/muic/muic.h>
 #include <linux/muic/muic_notifier.h>
 #endif
@@ -57,7 +56,6 @@
 #include <soc/samsung/cpufreq.h>
 #include <soc/samsung/exynos-powermode.h>
 #include <soc/samsung/asv-exynos.h>
-#include <soc/samsung/asv-cal.h>
 #include <soc/samsung/tmu.h>
 #include <soc/samsung/ect_parser.h>
 #include <soc/samsung/exynos-pmu.h>
@@ -79,9 +77,9 @@
 
 #ifdef CONFIG_SOC_EXYNOS8890
 #define CL0_MIN_FREQ		130000
-#define CL0_MAX_FREQ		1690000
+#define CL0_MAX_FREQ		1586000
 #define CL1_MIN_FREQ		208000
-#define CL1_MAX_FREQ		2704000
+#define CL1_MAX_FREQ		2600000
 #else
 #error "Please define core frequency ranges for current SoC."
 #endif
@@ -118,16 +116,13 @@ static struct exynos_dvfs_info *exynos_info[CL_END];
 static unsigned int volt_offset;
 static struct cpufreq_freqs *freqs[CL_END];
 
-
 static DEFINE_MUTEX(cpufreq_lock);
 static DEFINE_MUTEX(cpufreq_scale_lock);
 
 bool exynos_cpufreq_init_done;
 static bool suspend_prepared = false;
 #ifdef CONFIG_PM
-#ifdef CONFIG_SCHED_HMP
 static bool hmp_boosted = false;
-#endif
 static bool cluster1_hotplugged = false;
 extern bool is_cpu_thermal;
 #endif
@@ -159,7 +154,7 @@ static struct pm_qos_request core_max_qos_real[CL_END];
 static struct pm_qos_request exynos_mif_qos[CL_END];
 static struct pm_qos_request ipa_max_qos[CL_END];
 static struct pm_qos_request reboot_max_qos[CL_END];
-#if defined(CONFIG_SEC_PM) && defined(CONFIG_MUIC_NOTIFIER) && !defined(CONFIG_MUIC_SUPPORT_CCIC)
+#ifdef CONFIG_SEC_PM
 static struct pm_qos_request jig_boot_max_qos[CL_END];
 #endif
 
@@ -1279,6 +1274,7 @@ static struct notifier_block exynos_tmu_nb = {
 };
 #endif
 
+
 static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 {
 	unsigned int cur = get_cur_cluster(policy->cpu);
@@ -1436,8 +1432,10 @@ static void save_cpufreq_min_limit(int input)
 {
 	int cluster1_input = input, cluster0_input;
 
+	
+
 	if (cluster1_input >= (int)freq_min[CL_ONE]) {
-#ifdef CONFIG_SCHED_HMP
+
 		if (!is_cpu_thermal && current_mode == PERFORMANCE_MODE) {
 			if (!hmp_boosted) {
 				if (set_hmp_boost(1) < 0)
@@ -1446,16 +1444,16 @@ static void save_cpufreq_min_limit(int input)
 				else
 					hmp_boosted = true;
 			}
+
 			cluster1_input = min(cluster1_input, (int)freq_max[CL_ONE]);
 		} else
-#endif
 			cluster1_input = min(cluster1_input, min_flexible_freq);
 		if (exynos_info[CL_ZERO]->boost_freq)
 			cluster0_input = exynos_info[CL_ZERO]->boost_freq;
 		else
 			cluster0_input = core_max_qos_const[CL_ZERO].default_value;
 	} else if (cluster1_input < (int)freq_min[CL_ONE]) {
-#ifdef CONFIG_SCHED_HMP
+
 		if (hmp_boosted) {
 			if (set_hmp_boost(0) < 0)
 				pr_err("%s: failed HMP boost disable\n",
@@ -1463,7 +1461,7 @@ static void save_cpufreq_min_limit(int input)
 			else
 				hmp_boosted = false;
 		}
-#endif
+
 		if (cluster1_input < 0) {
 			cluster1_input = qos_min_default_value[CL_ONE];
 			cluster0_input = qos_min_default_value[CL_ZERO];
@@ -1550,6 +1548,7 @@ static void save_cpufreq_max_limit(int input)
 			enable_nonboot_cluster_cpus();
 			cluster1_hotplugged = false;
 		}
+
 		if (is_cpu_thermal && current_mode == BATTERY_MODE)
 			cluster1_input = max(cluster1_input, (int)freq_min[CL_ONE]);
 		else
@@ -1629,7 +1628,6 @@ static void dvfs_reset_work_fn(struct work_struct *work)
 	}
 #endif
 }
-
 static ssize_t show_cpufreq_reset_limit_sec(struct kobject *kobj,
 			     struct attribute *attr, char *buf)
 {
@@ -1968,7 +1966,7 @@ static struct attribute *mp_attributes[] = {
 	&cluster0_min_freq.attr,
 	&cluster0_max_freq.attr,
 	&cluster0_volt_table.attr,
-	&cpu_dvfs_mode_control.attr,	
+	&cpu_dvfs_mode_control.attr,
 	NULL
 };
 
@@ -2552,6 +2550,7 @@ static int exynos_cpufreq_init(void)
 		pr_err("%s: failed to create cpufreq_reset_limit_sec sysfs interface\n", __func__);
 		goto err_cpufreq_reset_limit_sec;
 	}
+
 #endif
 
 #ifdef CONFIG_SW_SELF_DISCHARGING
@@ -2741,7 +2740,6 @@ static int exynos_mp_cpufreq_parse_dt(struct device_node *np, cluster_type cl)
 	char *cluster_name;
 	int ret;
 	int not_using_ect = true;
-	unsigned int asv_big = asv_get_information(cal_asv_dvfs_big, dvfs_group, 0);
 
 	if (!np) {
 		pr_info("%s: cpufreq_dt is not existed. \n", __func__);
@@ -2782,7 +2780,7 @@ static int exynos_mp_cpufreq_parse_dt(struct device_node *np, cluster_type cl)
 			return -ENODEV;
 		if (of_property_read_u32(np, "cl1_reboot_limit_freq", &ptr->reboot_limit_freq))
 			return -ENODEV;
-#if defined(CONFIG_SEC_PM) && defined(CONFIG_MUIC_NOTIFIER) && !defined(CONFIG_MUIC_SUPPORT_CCIC)
+#ifdef CONFIG_SEC_PM
 		if (of_property_read_u32(np, "cl1_jig_boot_max_qos", &ptr->jig_boot_cpu_max_qos))
 			return -ENODEV;
 #endif
@@ -2790,8 +2788,7 @@ static int exynos_mp_cpufreq_parse_dt(struct device_node *np, cluster_type cl)
 #if defined(CONFIG_EXYNOS_BIG_FREQ_BOOST)
 		ptr->max_support_idx_table = kzalloc(sizeof(unsigned int)
 				* (NR_CLUST1_CPUS + 1), GFP_KERNEL);
-
-		ret = of_property_read_u32_array(np, "cl1_max_support_idx_table",
+		ret = of_property_read_u32_array(np, "cl1_max_support_idx_table",				
 				(unsigned int *)ptr->max_support_idx_table, NR_CLUST1_CPUS + 1);
 
 		if (ret < 0)
@@ -3063,7 +3060,9 @@ device_initcall(exynos_mp_cpufreq_init);
 late_initcall(exynos_mp_cpufreq_init);
 #endif
 
-#if defined(CONFIG_SEC_PM) && defined(CONFIG_MUIC_NOTIFIER) && !defined(CONFIG_MUIC_SUPPORT_CCIC)
+#if defined(CONFIG_SEC_PM) && defined(CONFIG_MUIC_NOTIFIER)
+
+#ifndef CONFIG_MUIC_SUPPORT_CCIC
 static struct notifier_block cpufreq_muic_nb;
 static bool jig_is_attached;
 
@@ -3090,6 +3089,7 @@ static int exynos_cpufreq_muic_notifier(struct notifier_block *nb,
 
 	return NOTIFY_DONE;
 }
+#endif
 
 static int __init exynos_cpufreq_late_init(void)
 {
@@ -3130,7 +3130,7 @@ static int __init exynos_cpufreq_late_init(void)
 }
 
 late_initcall(exynos_cpufreq_late_init);
-#endif /* CONFIG_SEC_PM && CONFIG_MUIC_NOTIFIER && CONFIG_MUIC_SUPPORT_CCIC is not defined */
+#endif /* CONFIG_SEC_PM && CONFIG_MUIC_NOTIFIER */
 
 static void __exit exynos_mp_cpufreq_exit(void)
 {
